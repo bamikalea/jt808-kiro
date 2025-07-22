@@ -139,11 +139,17 @@ class DashcamTCPServer {
 
     // Handle connection errors
     socket.on("error", (err) => {
-      Logger.error("Connection error", {
-        connectionId,
-        remoteAddress: clientInfo.remoteAddress,
-        error: err.message,
-      });
+      // Only log connection errors in development or for non-health check related errors
+      if (
+        process.env.NODE_ENV !== "production" ||
+        !err.message.includes("ECONNRESET")
+      ) {
+        Logger.error("Connection error", {
+          connectionId,
+          remoteAddress: clientInfo.remoteAddress,
+          error: err.message,
+        });
+      }
       connections.delete(connectionId);
     });
 
