@@ -8,8 +8,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 7001
       - key: LOG_DIR
         value: /tmp/logs
     # Health check for the TCP service

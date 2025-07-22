@@ -5,10 +5,15 @@ const fs = require("fs");
 
 // Configuration - Use environment variables for Render deployment
 const CONFIG = {
-  TCP_PORT: process.env.PORT || 7001,
+  TCP_PORT: parseInt(process.env.PORT, 10) || 7001,
   HOST: "0.0.0.0",
   LOG_DIR: process.env.LOG_DIR || "logs",
 };
+
+// Debug logging for Render deployment
+console.log("Environment PORT:", process.env.PORT);
+console.log("Parsed TCP_PORT:", CONFIG.TCP_PORT);
+console.log("NODE_ENV:", process.env.NODE_ENV);
 
 // Ensure logs directory exists (only if not in production)
 if (process.env.NODE_ENV !== "production" && !fs.existsSync(CONFIG.LOG_DIR)) {
@@ -197,7 +202,7 @@ const healthServer = http.createServer((req, res) => {
 });
 
 // Start health check server on a different port
-const healthPort = process.env.HEALTH_PORT || CONFIG.TCP_PORT + 1;
+const healthPort = parseInt(process.env.HEALTH_PORT, 10) || CONFIG.TCP_PORT + 1;
 healthServer.listen(healthPort, () => {
   Logger.info(`Health check server listening on port ${healthPort}`);
 });
