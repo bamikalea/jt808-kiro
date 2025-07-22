@@ -108,13 +108,15 @@ class DashcamTCPServer {
       info: clientInfo,
     });
 
-    // Only log new connections in development or for non-health check connections
-    if (process.env.NODE_ENV !== "production") {
+    // Always log new connections from external IPs (real dashcams)
+    const isExternalConnection = clientInfo.remoteAddress !== "127.0.0.1";
+    if (process.env.NODE_ENV !== "production" || isExternalConnection) {
       Logger.info("New dashcam connection established", {
         connectionId,
         remoteAddress: clientInfo.remoteAddress,
         remotePort: clientInfo.remotePort,
         totalConnections: connections.size,
+        isExternal: isExternalConnection,
       });
     }
 
@@ -166,14 +168,15 @@ class DashcamTCPServer {
     const isHealthCheck =
       dataStr.includes("HEAD /") || dataStr.includes("GET /health");
 
-    // Only log non-health check messages to reduce noise
+    // Always log real dashcam messages (non-health checks)
     if (!isHealthCheck) {
-      Logger.info("Received data from dashcam", {
+      Logger.info("🚗 REAL DASHCAM DATA RECEIVED", {
         connectionId,
         remoteAddress: connection.info.remoteAddress,
         dataLength: data.length,
         dataHex: data.toString("hex"),
         dataPreview: data.toString("ascii").replace(/[^\x20-\x7E]/g, "."),
+        isJT808: data[0] === 0x7e && data[data.length - 1] === 0x7e,
       });
     }
 
