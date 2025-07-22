@@ -36,19 +36,18 @@ class Logger {
       console.log("Data:", data);
     }
 
-    // Write to log file (only if directory exists and is writable)
-    try {
-      const logFile = path.join(
-        CONFIG.LOG_DIR,
-        `server-${new Date().toISOString().split("T")[0]}.log`
-      );
-      const logLine = data
-        ? `${logEntry} | Data: ${JSON.stringify(data)}\n`
-        : `${logEntry}\n`;
-      fs.appendFileSync(logFile, logLine);
-    } catch (error) {
-      // Silently fail file logging in production environments
-      if (process.env.NODE_ENV !== "production") {
+    // Only write to file in development mode
+    if (process.env.NODE_ENV !== "production") {
+      try {
+        const logFile = path.join(
+          CONFIG.LOG_DIR,
+          `server-${new Date().toISOString().split("T")[0]}.log`
+        );
+        const logLine = data
+          ? `${logEntry} | Data: ${JSON.stringify(data)}\n`
+          : `${logEntry}\n`;
+        fs.appendFileSync(logFile, logLine);
+      } catch (error) {
         console.warn(`Failed to write to log file: ${error.message}`);
       }
     }
