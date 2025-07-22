@@ -1,211 +1,179 @@
 # JT808/JT1078 Dashcam Server
 
-A Node.js-based middleware server that implements JT808 (GPS tracking and command) and JT1078 (multimedia streaming) protocols for Chinese-manufactured dashcams.
+A Node.js TCP server implementation for handling JT808/JT1078 protocol communication with vehicle dashcams and GPS tracking devices.
 
 ## Features
 
-- **TCP Server**: Accepts connections from JT808/JT1078 compliant dashcams
-- **Connection Management**: Tracks and manages multiple simultaneous dashcam connections
-- **Protocol Logging**: Comprehensive logging of all protocol messages and connection events
-- **Real-time Data Processing**: Handles incoming data from dashcams with immediate response
-- **Connection Testing**: Built-in test utilities to verify server functionality
+- **JT808 Protocol Support**: Complete implementation of JT808 protocol parser
+- **Raw Message Logging**: Detailed hex dump logging for debugging
+- **Protocol Version Detection**: Auto-detection of JT808-2011/2013/2019 versions
+- **Message Validation**: Schema-based message validation and serialization
+- **TCP Server**: Persistent TCP connections for real-time communication
+- **Health Monitoring**: Built-in health check endpoint for monitoring
 
-## Quick Start
-
-### Prerequisites
-
-- Node.js (v14 or higher)
-- npm
-
-### Installation
-
-1. Clone or download the project
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-### Running the Server
-
-Start the server:
-
-```bash
-npm start
-```
-
-Or for development with auto-restart:
-
-```bash
-npm run dev
-```
-
-The server will start listening on:
-
-- **Host**: 0.0.0.0 (all interfaces)
-- **Port**: 7001
-
-### Testing the Server
-
-Run the connection test to verify the server is working:
-
-```bash
-npm run test:connection
-```
-
-Run unit tests:
-
-```bash
-npm test
-```
-
-## Server Configuration
-
-The server uses the following default configuration:
-
-```javascript
-const CONFIG = {
-  TCP_PORT: 7001, // Port for dashcam connections
-  HOST: "0.0.0.0", // Listen on all interfaces
-  LOG_DIR: "logs", // Directory for log files
-};
-```
-
-## Dashcam Configuration
-
-To connect your dashcam to this server:
-
-1. **Server IP**: Set to your machine's IP address (e.g., 192.168.1.100)
-2. **Server Port**: Set to 7001
-3. **Protocol**: Ensure dashcam supports JT808/JT1078 protocols
-
-### Example SMS Configuration Commands
-
-For dashcams that support SMS configuration:
-
-```
-# Set server IP and port
-SERVER,0,192.168.1.100,7001#
-
-# Set APN (if using cellular connection)
-APN,your-apn-name,username,password#
-```
-
-## Project Structure
+## Architecture
 
 ```
 ├── src/
-│   ├── components/          # Protocol components (future)
-│   ├── models/             # Data models (future)
-│   ├── utils/              # Utility functions (future)
-│   └── server.js           # Main server implementation
-├── tests/
-│   └── server.test.js      # Unit tests
-├── logs/                   # Server log files
-├── test-connection.js      # Connection testing utility
-└── package.json
+│   ├── server.js              # Main TCP server
+│   ├── models/
+│   │   └── jt808-messages.js  # Protocol message definitions
+│   └── utils/
+│       ├── buffer-parser.js   # Binary data parsing utilities
+│       ├── checksum.js        # Message checksum validation
+│       ├── message-parser.js  # Protocol message parser
+│       └── message-validator.js # Message validation & serialization
+├── tests/                     # Unit tests
+├── render.yaml               # Render deployment configuration
+└── Dockerfile               # Container configuration
 ```
 
-## Logging
+## Local Development
 
-The server provides comprehensive logging:
+### Prerequisites
 
-- **Console Output**: Real-time logging to console
-- **File Logging**: Daily log files in `logs/` directory
-- **Connection Events**: New connections, disconnections, data received
-- **Protocol Messages**: Hex dump and ASCII preview of all messages
+- Node.js 18+
+- npm 8+
 
-### Log Levels
+### Installation
 
-- **INFO**: General information (connections, responses)
-- **WARN**: Warning conditions
-- **ERROR**: Error conditions with stack traces
+```bash
+npm install
+```
 
-## Testing Your Dashcam Connection
+### Running Locally
 
-1. Start the server: `npm start`
-2. Configure your dashcam with your server's IP and port 7001
-3. Monitor the server console for connection logs
-4. You should see messages like:
+```bash
+# Development mode with auto-reload
+npm run dev
+
+# Production mode
+npm start
+
+# Run tests
+npm test
+```
+
+### Testing the Parser
+
+```bash
+# Test the protocol parser with sample data
+node test-parser.js
+```
+
+## Deployment on Render
+
+### Option 1: Automatic Deployment (Recommended)
+
+1. **Connect Repository**: Link your GitHub repository to Render
+2. **Auto-Deploy**: Render will automatically detect `render.yaml` and deploy as Private Service
+3. **Environment Variables**: All required variables are pre-configured in `render.yaml`
+
+### Option 2: Manual Configuration
+
+1. **Create Private Service** on Render dashboard
+2. **Configure Settings**:
+
+   - **Runtime**: Node.js
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Plan**: Starter (or higher for production)
+
+3. **Environment Variables**:
    ```
-   [2025-07-22T12:50:18.675Z] INFO: New dashcam connection established
-   Data: {
-     connectionId: 1,
-     remoteAddress: '192.168.1.50',
-     remotePort: 12345,
-     totalConnections: 1
-   }
+   NODE_ENV=production
+   PORT=7001
+   LOG_DIR=/tmp/logs
    ```
 
-## Current Implementation Status
+### Service Configuration
 
-✅ **Completed (Task 1)**:
+The server is configured as a **Private Service** on Render with:
 
-- Basic TCP server setup
-- Connection management and logging
-- Data reception and basic response
-- Connection testing utilities
-- Project structure setup
-
-🚧 **Next Steps**:
-
-- JT808 protocol message parsing
-- Device registration handling
-- GPS location processing
-- Media file handling
-- Real-time streaming support
+- **TCP Support**: Full TCP server functionality
+- **Health Checks**: HTTP endpoint at `/health`
+- **Auto-scaling**: Based on connection load
+- **Persistent Storage**: 1GB disk for logs
+- **Region**: Oregon (configurable)
 
 ## Protocol Support
 
-Currently implemented:
+### Supported Messages
 
-- Basic TCP connection handling
-- Raw data logging and hex dump
-- Simple response generation
+- **Terminal Registration** (0x0100)
+- **Terminal Authentication** (0x0102)
+- **Heartbeat** (0x0002)
+- **Location Reports** (0x0200)
+- **Multimedia Upload** (0x0800/0x0801)
+- **Parameter Settings** (0x8103)
+- **Camera Control** (0x8801)
+- **General Responses** (0x8001)
 
-Planned for future tasks:
+### Message Features
 
-- JT808 message parsing (registration, heartbeat, location)
-- JT1078 media packet handling
-- Device authentication
-- Command processing
-- Real-time streaming
+- **Checksum Validation**: XOR checksum verification
+- **Protocol Version Detection**: Automatic version detection
+- **Message Serialization**: Bidirectional message conversion
+- **Field Validation**: Schema-based validation
+- **Error Handling**: Comprehensive error management
 
-## Troubleshooting
+## API Endpoints
 
-### Server Won't Start
+### Health Check
 
-- Check if port 7001 is already in use: `lsof -i :7001`
-- Try a different port by modifying `CONFIG.TCP_PORT` in `src/server.js`
+```
+GET /health
+```
 
-### Dashcam Won't Connect
+Returns server status and connection metrics.
 
-- Verify dashcam is configured with correct server IP and port
-- Check firewall settings on server machine
-- Ensure dashcam has network connectivity (WiFi or cellular)
-- Monitor server logs for connection attempts
+### TCP Connection
 
-### Connection Test Fails
+```
+TCP Port: 7001 (configurable via PORT env var)
+Protocol: JT808/JT1078
+```
 
-- Ensure server is running: `npm start`
-- Check if server is listening: `netstat -an | grep 7001`
-- Try running test with server in different terminal
+## Monitoring
 
-## Development
+The server provides detailed logging for:
 
-### Adding New Features
+- **Connection Events**: New connections, disconnections
+- **Message Processing**: Raw hex dumps, parsed data
+- **Protocol Analysis**: Version detection, validation results
+- **Error Tracking**: Connection errors, parsing failures
 
-1. Follow the task list in `.kiro/specs/jt808-jt1078-dashcam-server/tasks.md`
-2. Implement one task at a time
-3. Test thoroughly before moving to next task
-4. Update documentation as needed
+## Environment Variables
 
-### Code Style
+| Variable      | Default     | Description         |
+| ------------- | ----------- | ------------------- |
+| `PORT`        | 7001        | TCP server port     |
+| `NODE_ENV`    | development | Runtime environment |
+| `LOG_DIR`     | logs        | Log directory path  |
+| `HEALTH_PORT` | PORT+1      | Health check port   |
 
-- Use clear, descriptive variable names
-- Add comprehensive logging for debugging
-- Include error handling for all operations
-- Write tests for new functionality
+## Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test suites
+npx vitest run tests/buffer-parser.test.js
+npx vitest run tests/message-validator.test.js
+
+# Test with sample data
+node test-parser.js
+```
+
+## Production Considerations
+
+- **Connection Limits**: Monitor concurrent connections
+- **Log Rotation**: Implement log rotation for production
+- **Security**: Add authentication for sensitive operations
+- **Monitoring**: Set up alerts for connection failures
+- **Scaling**: Consider load balancing for high traffic
 
 ## License
 
-MIT License - see package.json for details
+MIT License - see LICENSE file for details.

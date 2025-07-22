@@ -1,0 +1,22 @@
+services:
+  - type: private_service
+    name: jt808-dashcam-server
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 7001
+      - key: LOG_DIR
+        value: /tmp/logs
+    # Health check for the TCP service
+    healthCheckPath: /health
+    # Auto-deploy from main branch
+    autoDeploy: true
+    # Resource limits
+    disk: 1GB
+    # Environment-specific settings
+    region: oregon

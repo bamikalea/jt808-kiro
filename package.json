@@ -8,7 +8,9 @@
     "dev": "nodemon src/server.js",
     "test": "vitest --run",
     "test:watch": "vitest",
-    "test:connection": "node test-connection.js"
+    "test:connection": "node test-connection.js",
+    "build": "echo 'No build step required for Node.js server'",
+    "postinstall": "echo 'Installation complete'"
   },
   "keywords": ["jt808", "jt1078", "dashcam", "gps", "fleet"],
   "author": "",
@@ -19,5 +21,9 @@
   "devDependencies": {
     "nodemon": "^3.0.2",
     "vitest": "^1.0.4"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
