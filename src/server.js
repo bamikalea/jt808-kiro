@@ -108,12 +108,15 @@ class DashcamTCPServer {
       info: clientInfo,
     });
 
-    Logger.info("New dashcam connection established", {
-      connectionId,
-      remoteAddress: clientInfo.remoteAddress,
-      remotePort: clientInfo.remotePort,
-      totalConnections: connections.size,
-    });
+    // Only log new connections in development or for non-health check connections
+    if (process.env.NODE_ENV !== "production") {
+      Logger.info("New dashcam connection established", {
+        connectionId,
+        remoteAddress: clientInfo.remoteAddress,
+        remotePort: clientInfo.remotePort,
+        totalConnections: connections.size,
+      });
+    }
 
     // Handle incoming data
     socket.on("data", (data) => {
@@ -122,12 +125,15 @@ class DashcamTCPServer {
 
     // Handle connection close
     socket.on("close", () => {
-      Logger.info("Dashcam connection closed", {
-        connectionId,
-        remoteAddress: clientInfo.remoteAddress,
-        deviceId: clientInfo.deviceId,
-        duration: Date.now() - clientInfo.connectedAt.getTime(),
-      });
+      // Only log connection closures in development
+      if (process.env.NODE_ENV !== "production") {
+        Logger.info("Dashcam connection closed", {
+          connectionId,
+          remoteAddress: clientInfo.remoteAddress,
+          deviceId: clientInfo.deviceId,
+          duration: Date.now() - clientInfo.connectedAt.getTime(),
+        });
+      }
       connections.delete(connectionId);
     });
 
@@ -149,13 +155,21 @@ class DashcamTCPServer {
     const connection = connections.get(connectionId);
     if (!connection) return;
 
-    Logger.info("Received data from dashcam", {
-      connectionId,
-      remoteAddress: connection.info.remoteAddress,
-      dataLength: data.length,
-      dataHex: data.toString("hex"),
-      dataPreview: data.toString("ascii").replace(/[^\x20-\x7E]/g, "."),
-    });
+    // Check if this is a health check request (HTTP HEAD request)
+    const dataStr = data.toString("ascii");
+    const isHealthCheck =
+      dataStr.includes("HEAD /") || dataStr.includes("GET /health");
+
+    // Only log non-health check messages to reduce noise
+    if (!isHealthCheck) {
+      Logger.info("Received data from dashcam", {
+        connectionId,
+        remoteAddress: connection.info.remoteAddress,
+        dataLength: data.length,
+        dataHex: data.toString("hex"),
+        dataPreview: data.toString("ascii").replace(/[^\x20-\x7E]/g, "."),
+      });
+    }
 
     // For now, just echo back a simple response
     // This will be replaced with proper JT808 protocol handling in later tasks
@@ -165,11 +179,14 @@ class DashcamTCPServer {
     ]);
     connection.socket.write(response);
 
-    Logger.info("Sent response to dashcam", {
-      connectionId,
-      responseLength: response.length,
-      responseHex: response.toString("hex"),
-    });
+    // Only log response for non-health checks
+    if (!isHealthCheck) {
+      Logger.info("Sent response to dashcam", {
+        connectionId,
+        responseLength: response.length,
+        responseHex: response.toString("hex"),
+      });
+    }
   }
 
   getConnections() {
