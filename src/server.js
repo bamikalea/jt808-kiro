@@ -15,9 +15,14 @@ console.log("Environment PORT:", process.env.PORT);
 console.log("Parsed TCP_PORT:", CONFIG.TCP_PORT);
 console.log("NODE_ENV:", process.env.NODE_ENV);
 
-// Ensure logs directory exists (only if not in production)
-if (process.env.NODE_ENV !== "production" && !fs.existsSync(CONFIG.LOG_DIR)) {
-  fs.mkdirSync(CONFIG.LOG_DIR, { recursive: true });
+// Ensure logs directory exists
+if (!fs.existsSync(CONFIG.LOG_DIR)) {
+  try {
+    fs.mkdirSync(CONFIG.LOG_DIR, { recursive: true });
+    console.log(`Created logs directory: ${CONFIG.LOG_DIR}`);
+  } catch (error) {
+    console.warn(`Could not create logs directory: ${error.message}`);
+  }
 }
 
 // Simple logger
@@ -31,15 +36,22 @@ class Logger {
       console.log("Data:", data);
     }
 
-    // Write to log file
-    const logFile = path.join(
-      CONFIG.LOG_DIR,
-      `server-${new Date().toISOString().split("T")[0]}.log`
-    );
-    const logLine = data
-      ? `${logEntry} | Data: ${JSON.stringify(data)}\n`
-      : `${logEntry}\n`;
-    fs.appendFileSync(logFile, logLine);
+    // Write to log file (only if directory exists and is writable)
+    try {
+      const logFile = path.join(
+        CONFIG.LOG_DIR,
+        `server-${new Date().toISOString().split("T")[0]}.log`
+      );
+      const logLine = data
+        ? `${logEntry} | Data: ${JSON.stringify(data)}\n`
+        : `${logEntry}\n`;
+      fs.appendFileSync(logFile, logLine);
+    } catch (error) {
+      // Silently fail file logging in production environments
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`Failed to write to log file: ${error.message}`);
+      }
+    }
   }
 
   static info(message, data) {
